@@ -665,7 +665,9 @@ tr:last-child td {
     setDoc
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  const firebaseConfig = {
+  window.firebaseReady = false;
+  window.firebaseInitPromise = (async () => {
+    const firebaseConfig = {
     apiKey: "AIzaSyC6EqwqRkEF3X_t7QHLNc06Vxip32YpE6E",
     authDomain: "caribbean-sunday-league.firebaseapp.com",
     projectId: "caribbean-sunday-league",
@@ -674,10 +676,8 @@ tr:last-child td {
     appId: "1:894839206889:web:42ad09ca307a7cedb55178"
   };
 
-  const hasFirebaseConfig = Object.values(firebaseConfig).every(value => value && !String(value).startsWith('PASTE_YOUR_'));
+    const hasFirebaseConfig = Object.values(firebaseConfig).every(value => value && !String(value).startsWith('PASTE_YOUR_'));
 
-  window.firebaseReady = false;
-  window.firebaseInitPromise = (async () => {
     if (hasFirebaseConfig) {
       const app = initializeApp(firebaseConfig);
       const db = getFirestore(app);
@@ -686,11 +686,15 @@ tr:last-child td {
       window.firebaseGetDoc = getDoc;
       window.firebaseSetDoc = setDoc;
       window.firebaseReady = true;
+      console.log('Firebase initialized successfully.');
     } else {
       console.warn('Firebase config is missing. Add your Firebase web app config to enable shared online saving.');
       window.firebaseReady = false;
     }
-  })();
+  })().catch(err => {
+    console.error('Firebase init failed:', err);
+    window.firebaseReady = false;
+  });
 </script>
 
 <script>
@@ -739,11 +743,10 @@ const TEAM_BRANDING = {
 
 // ====================== SAVE / LOAD / INIT ======================
 async function saveData() {
-  localStorage.setItem(STORAGE_KEYS.admin, JSON.stringify(isAdmin));
-
   if (window.firebaseInitPromise) {
     await window.firebaseInitPromise;
   }
+  localStorage.setItem(STORAGE_KEYS.admin, JSON.stringify(isAdmin));
 
   if (window.firebaseReady && window.db) {
     await window.firebaseSetDoc(
@@ -766,6 +769,9 @@ async function saveData() {
 }
 
 async function loadData() {
+  if (window.firebaseInitPromise) {
+    await window.firebaseInitPromise;
+  }
   isAdmin = JSON.parse(localStorage.getItem(STORAGE_KEYS.admin)) || false;
 
   if (window.firebaseReady && window.db) {
@@ -878,19 +884,19 @@ function toggleAdminPanel() {
   document.getElementById('authPanel').classList.toggle('open');
 }
 
-function loginAdmin() {
+async function loginAdmin() {
   if (document.getElementById('adminPassword').value === ADMIN_PASSWORD) {
     isAdmin = true;
-    saveData();
+    await saveData();
     renderAll();
     toggleAdminPanel();
     alert('✅ Admin mode enabled');
   } else alert('❌ Wrong password');
 }
 
-function logoutAdmin() {
+async function logoutAdmin() {
   isAdmin = false;
-  saveData();
+  await saveData();
   renderAll();
   toggleAdminPanel();
 }
