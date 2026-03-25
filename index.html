@@ -657,43 +657,38 @@ tr:last-child td {
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// ============================================================
+// ALL CODE IS IN ONE MODULE so Firebase is always initialized
+// before any app logic runs. Functions used by HTML onclick
+// attributes are explicitly assigned to window below.
+// ============================================================
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyC6EqwqRkEF3X_t7QHLNc06Vxip32YpE6E",
-    authDomain: "caribbean-sunday-league.firebaseapp.com",
-    projectId: "caribbean-sunday-league",
-    storageBucket: "caribbean-sunday-league.firebasestorage.app",
-    messagingSenderId: "894839206889",
-    appId: "1:894839206889:web:42ad09ca307a7cedb55178"
-  };
+// ---------- Firebase init (awaited before anything else) ----------
+const firebaseConfig = {
+  apiKey: "AIzaSyC6EqwqRkEF3X_t7QHLNc06Vxip32YpE6E",
+  authDomain: "caribbean-sunday-league.firebaseapp.com",
+  projectId: "caribbean-sunday-league",
+  storageBucket: "caribbean-sunday-league.firebasestorage.app",
+  messagingSenderId: "894839206889",
+  appId: "1:894839206889:web:42ad09ca307a7cedb55178"
+};
 
-  const hasFirebaseConfig = Object.values(firebaseConfig).every(value => value && !String(value).startsWith('PASTE_YOUR_'));
+let db = null;
+try {
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  console.log('✅ Firebase connected');
+} catch(e) {
+  console.error('Firebase init failed:', e);
+}
 
-  window.firebaseReady = false;
-  window.firebaseInitPromise = (async () => {
-    if (hasFirebaseConfig) {
-      const app = initializeApp(firebaseConfig);
-      const db = getFirestore(app);
-      window.db = db;
-      window.firebaseDoc = doc;
-      window.firebaseGetDoc = getDoc;
-      window.firebaseSetDoc = setDoc;
-      window.firebaseReady = true;
-    } else {
-      console.warn('Firebase config is missing. Add your Firebase web app config to enable shared online saving.');
-      window.firebaseReady = false;
-    }
-  })();
-</script>
-
-<script>
 // ====================== CONFIG ======================
 const ADMIN_PASSWORD = 'Laligadecroqueta26*';
 
@@ -741,24 +736,23 @@ const TEAM_BRANDING = {
 async function saveData() {
   localStorage.setItem(STORAGE_KEYS.admin, JSON.stringify(isAdmin));
 
-  if (window.firebaseInitPromise) {
-    await window.firebaseInitPromise;
-  }
-
-  if (window.firebaseReady && window.db) {
-    await window.firebaseSetDoc(
-      window.firebaseDoc(window.db, 'league', 'main'),
-      {
+  if (db) {
+    try {
+      await setDoc(doc(db, 'league', 'main'), {
         teams,
         games,
         announcements,
         rosters,
         updatedAt: new Date().toISOString()
-      }
-    );
-    return;
+      });
+      console.log('✅ Saved to Firestore');
+      return;
+    } catch(e) {
+      console.error('Firestore save failed:', e);
+    }
   }
 
+  // Fallback to localStorage if Firestore unavailable
   localStorage.setItem(STORAGE_KEYS.teams, JSON.stringify(teams));
   localStorage.setItem(STORAGE_KEYS.games, JSON.stringify(games));
   localStorage.setItem(STORAGE_KEYS.announcements, JSON.stringify(announcements));
@@ -768,37 +762,38 @@ async function saveData() {
 async function loadData() {
   isAdmin = JSON.parse(localStorage.getItem(STORAGE_KEYS.admin)) || false;
 
-  // Wait for Firebase module to finish loading before checking firebaseReady.
-  // The ES module script runs async, so without this await, firebaseReady
-  // is still false and the app silently falls back to localStorage.
-  if (window.firebaseInitPromise) {
-    await window.firebaseInitPromise;
-  }
-
-  if (window.firebaseReady && window.db) {
-    const docRef = window.firebaseDoc(window.db, 'league', 'main');
-    const docSnap = await window.firebaseGetDoc(docRef);
-
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      teams = data.teams || [];
-      games = data.games || [];
-      announcements = data.announcements || getDefaultAnnouncements();
-      rosters = data.rosters || getDefaultRosters();
-    } else {
-      initDefaultData();
-      await saveData();
+  if (db) {
+    try {
+      const docSnap = await getDoc(doc(db, 'league', 'main'));
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        teams = data.teams || [];
+        games = data.games || [];
+        announcements = data.announcements || getDefaultAnnouncements();
+        rosters = data.rosters || getDefaultRosters();
+        console.log('✅ Loaded from Firestore');
+      } else {
+        console.log('No Firestore doc yet — creating defaults');
+        initDefaultData();
+        await saveData();
+      }
+    } catch(e) {
+      console.error('Firestore load failed:', e);
+      loadFromLocalStorage();
     }
   } else {
-    teams = JSON.parse(localStorage.getItem(STORAGE_KEYS.teams)) || [];
-    games = JSON.parse(localStorage.getItem(STORAGE_KEYS.games)) || [];
-    announcements = JSON.parse(localStorage.getItem(STORAGE_KEYS.announcements)) || getDefaultAnnouncements();
-    rosters = JSON.parse(localStorage.getItem(STORAGE_KEYS.rosters)) || getDefaultRosters();
-
-    if (teams.length === 0) initDefaultData();
+    loadFromLocalStorage();
   }
 
   ensureRosterShape();
+}
+
+function loadFromLocalStorage() {
+  teams = JSON.parse(localStorage.getItem(STORAGE_KEYS.teams)) || [];
+  games = JSON.parse(localStorage.getItem(STORAGE_KEYS.games)) || [];
+  announcements = JSON.parse(localStorage.getItem(STORAGE_KEYS.announcements)) || getDefaultAnnouncements();
+  rosters = JSON.parse(localStorage.getItem(STORAGE_KEYS.rosters)) || getDefaultRosters();
+  if (teams.length === 0) initDefaultData();
 }
 
 function initDefaultData() {
@@ -1237,21 +1232,29 @@ function renderStadiums() {
 
 // ====================== START ======================
 async function startApp() {
-  // Always wait for Firebase to finish initializing before loading data.
-  // Without this, firebaseReady is still false when loadData() runs,
-  // so it falls back to localStorage and changes don't persist across browsers.
-  if (window.firebaseInitPromise) {
-    await window.firebaseInitPromise;
-  }
-  // Now firebaseReady is accurate — loadData will use Firestore if available
+  // db is already initialized above — no waiting needed
   await loadData();
   renderAll();
 }
+
+// Expose functions called by HTML onclick attributes to the global scope
+window.showPage = showPage;
+window.openTeamDetail = openTeamDetail;
+window.toggleAdminPanel = toggleAdminPanel;
+window.loginAdmin = loginAdmin;
+window.logoutAdmin = logoutAdmin;
+window.addTeam = addTeam;
+window.removeTeam = removeTeam;
+window.submitGame = submitGame;
+window.editGame = editGame;
+window.addAnnouncement = addAnnouncement;
+window.deleteAnnouncement = deleteAnnouncement;
+window.addRosterPlayer = addRosterPlayer;
+window.removeRosterPlayer = removeRosterPlayer;
 
 startApp().catch(err => {
   console.error('App failed to start:', err);
   alert('There was a problem loading the league data. Check your Firebase config and try again.');
 });
 </script>
-</body>
-</html>
+</body></html>
