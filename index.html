@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caribbean Sunday League</title>
+<style>
+:root {
+  --navy: #0a2342;
+  --navy-2: #102f57;
+  --red: #d7263d;
+  --gold: #f4b400;
+  --text: #0f172a;
+  --muted: #64748b;
+  --line: #dbe4ee;
+  --bg: #eef3f8;
+  --white: #ffffff;
+  --shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  background: linear-gradient(rgba(238,243,248,0.75), rgba(238,243,248,0.79)),
+              url('https://images.unsplash.com/photo-1471295253337-3ceaaedca402?auto=format&fit=crop&w=1600&q=80') center/cover fixed;
+  color: var(--text);
+}
+
+a { color: inherit; text-decoration: none; }
+button {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 16px;
+  background: var(--red);
+  color: var(--white);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+button:hover { transform: translateY(-1px); }
+button.secondary { background: var(--navy-2); }
+button.danger { background: #b91c1c; }
+
+input, textarea {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+}
+textarea { resize: vertical; min-height: 88px; }
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(10px);
+  background: rgba(10, 35, 66, 0.94);
+  color: white;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.scoreboard-strip {
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+}
+.scoreboard-track {
+  max-width: 1200px;
+  margin: auto;
+  padding: 10px 20px;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+}
+.scoreboard-item {
+  min-width: 260px;
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: white;
+}
+.scoreboard-topline { display: flex; justify-content: space-between; font-size: 11px; text-transform: uppercase; color: #c9daee; margin-bottom: 8px; }
+.scoreboard-matchup { display: grid; gap: 6px; }
+.scoreboard-row { display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; }
+.scoreboard-team-name { font-weight: 800; font-size: 14px; }
+.scoreboard-team-score { font-size: 18px; font-weight: 800; }
+
+.header-inner { max-width: 1100px; margin: auto; padding: 14px 18px; }
+.brand-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark {
+  width: 72px; height: 72px; border-radius: 20px;
+  display: grid; place-items: center;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+}
+.brand-mark img { width: 100%; height: 100%; object-fit: contain; }
+
+.brand h1 { margin: 0; font-size: 28px; }
+.brand p { margin: 2px 0 0; color: #d6e4f5; font-size: 13px; text-transform: uppercase; }
+
+nav { display: flex; gap: 18px; flex-wrap: wrap; }
+nav a { color: #d9e7f7; font-weight: 700; position: relative; }
+nav a::after {
+  content: ''; position: absolute; left: 0; bottom: -6px;
+  width: 0; height: 2px; background: var(--gold);
+  transition: width 0.2s ease;
+}
+nav a:hover::after { width: 100%; }
+
+.auth-box { position: fixed; right: 16px; bottom: 16px; z-index: 999; }
+.auth-panel {
+  position: absolute; right: 0; bottom: 74px; display: none;
+  width: 300px; padding: 16px; border-radius: 20px;
+  background: rgba(10, 35, 66, 0.98); border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 18px 40px rgba(2,6,23,0.35);
+}
+.auth-panel.open { display: flex; flex-direction: column; gap: 10px; }
+.auth-toggle {
+  width: 58px; height: 58px; border-radius: 50%;
+  background: rgba(10,35,66,0.96); border: 1px solid rgba(255,255,255,0.12);
+  color: white; font-size: 24px; cursor: pointer;
+}
+
+.container { max-width: 1100px; margin: auto; padding: 22px 18px 36px; }
+.hidden { display: none; }
+
+.hero {
+  position: relative; overflow: hidden; min-height: 390px; border-radius: 26px;
+  box-shadow: var(--shadow); color: white;
+  background: linear-gradient(90deg, rgba(10,35,66,0.92) 0%, rgba(10,35,66,0.75) 45%, rgba(10,35,66,0.25) 100%),
+              url('https://images.unsplash.com/photo-1578432014316-48b448d79d57?w=900&auto=format&fit=crop&q=60') center/cover;
+}
+.hero-content { position: relative; z-index: 1; padding: 42px; max-width: 620px; }
+.hero-kicker { padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.2); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+.hero h2 { margin: 16px 0 10px; font-size: clamp(34px, 5vw, 56px); line-height: 0.95; }
+.hero p { margin: 0 0 20px; color: #e6eef7; font-size: 17px; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 28px; }
+.hero-stat { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.14); border-radius: 18px; padding: 16px; }
+.hero-stat strong { display: block; font-size: 26px; margin-bottom: 6px; }
+
+.section-grid, .home-lower-grid { display: grid; gap: 22px; margin-top: 24px; }
+@media (min-width: 901px) {
+  .section-grid { grid-template-columns: 1.15fr 0.85fr; }
+  .home-lower-grid { grid-template-columns: 0.95fr 1.05fr; }
+}
+
+.card {
+  background: rgba(255,255,255,0.96);
+  border: 1px solid rgba(255,255,255,0.75);
+  padding: 18px;
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+.panel-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.panel-title p { margin: 0; color: var(--muted); font-size: 14px; }
+
+.team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.team-card {
+  position: relative; overflow: hidden; min-height: 200px;
+  display: flex; align-items: end; color: white;
+  background-size: cover; background-position: center; cursor: pointer;
+}
+.team-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(10,35,66,0.15), rgba(10,35,66,0.82));
+}
+.team-content { position: relative; z-index: 1; width: 100%; padding: 18px; }
+
+.logo-badge {
+  width: 44px; height: 44px; border-radius: 50%;
+  display: inline-grid; place-items: center;
+  color: white; font-size: 19px; font-weight: 800;
+  box-shadow: 0 8px 18px rgba(15,23,42,0.22);
+  overflow: hidden;
+}
+.logo-badge img { width: 100%; height: 100%; object-fit: contain; }
+
+.detail-hero {
+  background: linear-gradient(135deg, rgba(10,35,66,0.96), rgba(16,47,87,0.92));
+  color: white; display: flex; align-items: center; gap: 16px;
+  min-height: 140px; padding: 20px; border-radius: 16px;
+}
+.snapshot-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.snapshot-box {
+  border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px; background: linear-gradient(180deg, #fff, #f8fbff);
+}
+.snapshot-label { color: var(--muted); font-size: 12px; text-transform: uppercase; font-weight: 700; }
+.snapshot-value { margin-top: 6px; font-size: 24px; font-weight: 800; color: var(--navy); }
+
+.roster-list { display: grid; gap: 10px; }
+.roster-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 14px; border: 1px solid var(--line);
+  border-radius: 14px; background: linear-gradient(180deg, #fff, #f8fbff);
+}
+.roster-form { display: grid; grid-template-columns: 1fr 180px auto; gap: 10px; margin-bottom: 14px; }
+@media (max-width: 900px) {
+  .roster-form { grid-template-columns: 1fr; }
+  .section-grid, .home-lower-grid { grid-template-columns: 1fr; }
+}
+
+
+/* ===== FIXES FOR ALIGNMENT / SIZE ===== */
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 14px;
+  background: white;
+}
+
+th, td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+th {
+  background: #f8fbff;
+  color: var(--navy);
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.team-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.team-heading h3 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.team-record {
+  font-size: 14px;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.logo-badge.small {
+  width: 28px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.logo-badge.large {
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+}
+
+.latest-results-list,
+.announcements-list,
+.schedule-list,
+.roster-list {
+  display: grid;
+  gap: 8px;
+}
+
+.latest-result-item,
+.announcement-item,
+.simple-game-card {
+  background: linear-gradient(180deg, #fff, #f8fbff);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.latest-result-item {
+  display: grid;
+  grid-template-columns: 88px 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+
+.latest-result-thumb {
+  width: 88px;
+  height: 68px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+}
+
+.latest-result-score {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--navy);
+  white-space: nowrap;
+}
+
+.simple-game-card {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 72px;
+}
+
+.simple-game-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.simple-game-matchup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.simple-game-matchup .team-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  vertical-align: middle;
+}
+
+.simple-game-matchup .logo-badge {
+  flex-shrink: 0;
+}
+
+.simple-game-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 88px;
+  text-align: right;
+}
+
+.score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 68px;
+  text-align: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--navy);
+  color: white;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.vs-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text);
+}
+
+.announcement-item strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 17px;
+}
+
+.announcement-date {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--red);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stadium-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+}
+
+.stadium-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.stadium-image {
+  height: 180px;
+  background-size: cover;
+  background-position: center;
+}
+
+.stadium-body {
+  padding: 16px;
+}
+
+.stadium-team {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.stadium-body h3 {
+  margin: 0 0 8px;
+}
+
+.stadium-meta {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.team-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .latest-result-item,
+  .simple-game-card {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+
+  .simple-game-right {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .latest-result-thumb {
+    width: 100%;
+    height: 150px;
+  }
+
+  .brand-mark {
+    width: 72px;
+    height: 72px;
+  }
+
+  .brand h1 {
+    font-size: 22px;
+  }
+
+  nav {
+    gap: 12px;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="scoreboard-strip">
+    <div id="scoreboardStrip" class="scoreboard-track"></div>
+  </div>
+  <div class="header-inner">
+    <div class="brand-row">
+      <div class="brand">
+        <div class="brand-mark">
+          <img src="logo.png" alt="Caribbean Sunday League">
+        </div>
+        <div>
+          <h1>Caribbean Sunday League</h1>
+          <p>Official League Website • 2026 Season</p>
+        </div>
+      </div>
+      <nav>
+        <a href="#" onclick="showPage('home'); return false;">Home</a>
+        <a href="#" onclick="showPage('teams'); return false;">Teams</a>
+        <a href="#" onclick="showPage('schedule'); return false;">Schedule</a>
+        <a href="#" onclick="showPage('standings'); return false;">Standings</a>
+        <a href="#" onclick="showPage('stadiums'); return false;">Stadiums</a>
+        <a href="#" onclick="showPage('rules'); return false;">Rules</a>
+      </nav>
+    </div>
+
+    <div class="auth-box">
+      <button class="auth-toggle" onclick="toggleAdminPanel()" aria-label="Admin">⚙️</button>
+      <div id="authPanel" class="auth-panel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <span style="font-weight:800;letter-spacing:0.06em;text-transform:uppercase;">Admin Access</span>
+          <button class="secondary" onclick="toggleAdminPanel()">Close</button>
+        </div>
+        <input id="adminPassword" type="password" placeholder="Admin password">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button onclick="loginAdmin()">Login</button>
+          <button class="secondary" onclick="logoutAdmin()">Logout</button>
+        </div>
+        <small style="color:#d6e4f5;">Admins can edit scores, rosters & announcements</small>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div id="home">
+    <section class="hero">
+      <div class="hero-content">
+        <span class="hero-kicker">2026 Season</span>
+        <h2>Big games. Real baseball energy.</h2>
+        <p>Welcome to the Caribbean Sunday League — where passion meets the diamond every Sunday.</p>
+        <div class="hero-actions">
+          <button onclick="showPage('schedule')">View Schedule</button>
+          <button class="secondary" onclick="showPage('standings')">Standings</button>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><strong id="heroTeams">4</strong><span>Teams</span></div>
+          <div class="hero-stat"><strong id="heroGames">32</strong><span>Total Games</span></div>
+          <div class="hero-stat"><strong id="heroPlayed">0</strong><span>Games Played</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-grid">
+      <section class="card" style="background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.95) 42%), url('https://images.unsplash.com/photo-1518604666860-9ed391f76460?auto=format&fit=crop&w=1200&q=80') center/cover; color: var(--text); min-height:100%;">
+        <div style="margin-top:170px;background:rgba(255,255,255,0.92);backdrop-filter:blur(6px);border-radius:18px;padding:18px;">
+          <h2>Game Day Spotlight</h2>
+          <p>The 2026 season is underway! Check the latest results and announcements below.</p>
+        </div>
+      </section>
+
+      <section class="card quick-standings">
+        <div class="panel-title">
+          <h2>Top of the Table</h2>
+          <p>Current standings</p>
+        </div>
+        <table><thead><tr><th>Team</th><th>W</th><th>L</th><th>GB</th></tr></thead><tbody id="homeStandingsTable"></tbody></table>
+      </section>
+    </div>
+
+    <div class="home-lower-grid">
+      <section class="card">
+        <div class="panel-title"><h2>Latest Results</h2><p>Most recent games</p></div>
+        <div id="latestResultsList" class="latest-results-list"></div>
+      </section>
+
+      <section class="card">
+        <div class="panel-title"><h2>Announcements</h2><p>From the commissioner</p></div>
+        <div id="announcementsAdmin"></div>
+        <div id="announcementsList" class="announcements-list"></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="teams" class="hidden">
+    <section class="card">
+      <div class="panel-title">
+        <h2>League Teams</h2>
+        <p>Click a card to view roster & games</p>
+      </div>
+      <div id="teamAdminControls" class="row hidden" style="margin-bottom:14px;">
+        <input id="newTeam" placeholder="New team name">
+        <button onclick="addTeam()">Add Team</button>
+      </div>
+      <div id="teamsList" class="team-grid"></div>
+    </section>
+  </div>
+
+  <div id="teamDetail" class="hidden">
+    <section class="card">
+      <div class="panel-title">
+        <div>
+          <h2 id="teamDetailTitle"></h2>
+          <p id="teamDetailSubtitle"></p>
+        </div>
+        <button class="secondary" onclick="showPage('teams')">← Back to Teams</button>
+      </div>
+      <div id="teamDetailHero"></div>
+      <div class="home-lower-grid">
+        <section class="card" style="margin-top:0;box-shadow:none;border:1px solid var(--line);">
+          <div class="panel-title"><h3>Team Snapshot</h3></div>
+          <div id="teamSnapshot" class="snapshot-grid"></div>
+        </section>
+        <section class="card" style="margin-top:0;box-shadow:none;border:1px solid var(--line);">
+          <div class="panel-title"><h3>Recent & Upcoming Games</h3></div>
+          <div id="teamRecentGames" class="schedule-list"></div>
+        </section>
+      </div>
+      <section class="card" style="margin-top:22px;box-shadow:none;border:1px solid var(--line);">
+        <div class="panel-title"><h3>Roster</h3></div>
+        <div id="teamRosterAdmin"></div>
+        <div id="teamRoster" class="roster-list"></div>
+      </section>
+    </section>
+  </div>
+
+  <!-- Schedule, Standings, Stadiums, Rules sections are included but shortened for readability. 
+       They work the same as in the previous full version. -->
+
+  <div id="schedule" class="hidden">
+    <section class="card">
+      <div class="panel-title"><h2>Full Schedule & Results</h2></div>
+      <div id="gamesList" class="schedule-list"></div>
+    </section>
+  </div>
+
+  <div id="standings" class="hidden">
+    <section class="card">
+      <div class="panel-title"><h2>League Standings</h2><p>Wins → Run Differential</p></div>
+      <table>
+        <thead><tr><th>Team</th><th>W</th><th>L</th><th>GB</th><th>RS</th><th>RA</th><th>DIFF</th></tr></thead>
+        <tbody id="standingsTable"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <div id="stadiums" class="hidden">
+    <section class="card">
+      <div class="panel-title"><h2>Stadiums</h2></div>
+      <div id="stadiumsList" class="stadium-grid"></div>
+    </section>
+  </div>
+
+  <div id="rules" class="hidden">
+    <section class="card">
+      <div class="panel-title"><h2>League Rules</h2></div>
+      <ul style="line-height:1.7;">
+        <li>Each team plays 16 games (home & away).</li>
+        <li>Standings ranked by wins, then run differential.</li>
+        <li>No ties allowed — games must have a winner.</li>
+        <li>Only admins can submit/edit scores and manage rosters/announcements.</li>
+      </ul>
+    </section>
+  </div>
+
+  <div style="text-align:center;color:var(--muted);margin-top:40px;font-size:13px;">
+    Caribbean Sunday League • 2026 Season
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC6EqwqRkEF3X_t7QHLNc06Vxip32YpE6E",
+    authDomain: "caribbean-sunday-league.firebaseapp.com",
+    projectId: "caribbean-sunday-league",
+    storageBucket: "caribbean-sunday-league.firebasestorage.app",
+    messagingSenderId: "894839206889",
+    appId: "1:894839206889:web:42ad09ca307a7cedb55178"
+  };
+
+  const hasFirebaseConfig = Object.values(firebaseConfig).every(value => value && !String(value).startsWith('PASTE_YOUR_'));
+
+  if (hasFirebaseConfig) {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    window.db = db;
+    window.firebaseDoc = doc;
+    window.firebaseGetDoc = getDoc;
+    window.firebaseSetDoc = setDoc;
+    window.firebaseReady = true;
+  } else {
+    console.warn('Firebase config is missing. Add your Firebase web app config to enable shared online saving.');
+    window.firebaseReady = false;
+  }
+</script>
+
+<script>
+// ====================== CONFIG ======================
+const ADMIN_PASSWORD = 'Laligadecroqueta26*';
+
+const STORAGE_KEYS = {
+  teams: 'league_teams_v11',
+  games: 'league_games_v11',
+  announcements: 'league_announcements_v11',
+  rosters: 'league_rosters_v11',
+  admin: 'league_admin_v11'
+};
+
+let teams = [];
+let games = [];
+let announcements = [];
+let rosters = {};
+let isAdmin = false;
+let currentTeamDetail = null;
+
+const TEAM_BACKGROUNDS = [
+  'https://images.unsplash.com/photo-1508344928928-7165b67de128?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1518604666860-9ed391f76460?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1471295253337-3ceaaedca402?auto=format&fit=crop&w=900&q=80',
+  'https://images.unsplash.com/photo-1495727034151-8fdc73e332a8?auto=format&fit=crop&w=900&q=80'
+];
+
+const STADIUMS = {
+  'Boozy Bucks': { name: 'Boozy Bucks Field', address: '123 Sunset Avenue, Charlotte, NC', map: 'https://maps.google.com/?q=123+Sunset+Avenue+Charlotte+NC', image: TEAM_BACKGROUNDS[0] },
+  'Tigers': { name: 'Tiger Field', address: '85 Eastwood Drive, Raleigh, NC', map: 'https://maps.google.com/?q=85+Eastwood+Drive+Raleigh+NC', image: TEAM_BACKGROUNDS[1] },
+  'Eagles': { name: 'Eagle Stadium', address: '412 Lakeview Road, Durham, NC', map: 'https://maps.google.com/?q=412+Lakeview+Road+Durham+NC', image: TEAM_BACKGROUNDS[2] },
+  'Sharks': { name: 'Shark Diamond', address: '700 Harbor Lane, Wilmington, NC', map: 'https://maps.google.com/?q=700+Harbor+Lane+Wilmington+NC', image: TEAM_BACKGROUNDS[3] }
+};
+
+const TEAM_BRANDING = {
+  'Boozy Bucks': { 
+    short: 'BBK', 
+    logo: '<img src="boozybucks.png" alt="Boozy Bucks" style="width:100%;height:100%;object-fit:contain;">', 
+    colors: ['#16a34a', '#14532d'] 
+  },
+  'Tigers': { short: 'TIG', logo: '🐯', colors: ['#ea580c', '#7c2d12'] },
+  'Eagles': { short: 'EAG', logo: '🦅', colors: ['#2563eb', '#1e3a8a'] },
+  'Sharks': { short: 'SHK', logo: '🦈', colors: ['#0891b2', '#164e63'] }
+};
+
+// ====================== SAVE / LOAD / INIT ======================
+async function saveData() {
+  localStorage.setItem(STORAGE_KEYS.admin, JSON.stringify(isAdmin));
+
+  if (window.firebaseReady && window.db) {
+    await window.firebaseSetDoc(
+      window.firebaseDoc(window.db, 'league', 'main'),
+      {
+        teams,
+        games,
+        announcements,
+        rosters,
+        updatedAt: new Date().toISOString()
+      }
+    );
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.teams, JSON.stringify(teams));
+  localStorage.setItem(STORAGE_KEYS.games, JSON.stringify(games));
+  localStorage.setItem(STORAGE_KEYS.announcements, JSON.stringify(announcements));
+  localStorage.setItem(STORAGE_KEYS.rosters, JSON.stringify(rosters));
+}
+
+async function loadData() {
+  isAdmin = JSON.parse(localStorage.getItem(STORAGE_KEYS.admin)) || false;
+
+  if (window.firebaseReady && window.db) {
+    const docRef = window.firebaseDoc(window.db, 'league', 'main');
+    const docSnap = await window.firebaseGetDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      teams = data.teams || [];
+      games = data.games || [];
+      announcements = data.announcements || getDefaultAnnouncements();
+      rosters = data.rosters || getDefaultRosters();
+    } else {
+      initDefaultData();
+      await saveData();
+    }
+  } else {
+    teams = JSON.parse(localStorage.getItem(STORAGE_KEYS.teams)) || [];
+    games = JSON.parse(localStorage.getItem(STORAGE_KEYS.games)) || [];
+    announcements = JSON.parse(localStorage.getItem(STORAGE_KEYS.announcements)) || getDefaultAnnouncements();
+    rosters = JSON.parse(localStorage.getItem(STORAGE_KEYS.rosters)) || getDefaultRosters();
+
+    if (teams.length === 0) initDefaultData();
+  }
+
+  ensureRosterShape();
+}
+
+function initDefaultData() {
+  teams = [
+    { name: 'Boozy Bucks', wins: 0, losses: 0, rs: 0, ra: 0 },
+    { name: 'Tigers', wins: 0, losses: 0, rs: 0, ra: 0 },
+    { name: 'Eagles', wins: 0, losses: 0, rs: 0, ra: 0 },
+    { name: 'Sharks', wins: 0, losses: 0, rs: 0, ra: 0 }
+  ];
+  announcements = getDefaultAnnouncements();
+  rosters = getDefaultRosters();
+  generateSchedule();
+}
+
+function getDefaultAnnouncements() {
+  return [
+    { id: 1, date: '2026-04-01', title: 'Season Opening Sunday', text: 'Welcome to the 2026 season! Arrive early and bring your energy.' },
+    { id: 2, date: '2026-04-08', title: 'Rain Policy', text: 'In case of rain, games will be rescheduled for the following Sunday.' }
+  ];
+}
+
+function getDefaultRosters() {
+  return {
+    'Boozy Bucks': [{id:1,name:'Marcus Rivera',position:'P'},{id:2,name:'Jamal Thompson',position:'C'},{id:3,name:'Diego Morales',position:'1B'}],
+    'Tigers': [{id:4,name:'Lionel Grant',position:'SS'},{id:5,name:'Kwame Okoro',position:'OF'}],
+    'Eagles': [{id:6,name:'Ethan Blake',position:'P'},{id:7,name:'Omar Santos',position:'3B'}],
+    'Sharks': [{id:8,name:'Tyrone Hayes',position:'CF'},{id:9,name:'Rafael Vega',position:'C'}]
+  };
+}
+
+function ensureRosterShape() {
+  teams.forEach(t => { if (!Array.isArray(rosters[t.name])) rosters[t.name] = []; });
+}
+
+function generateSchedule() {
+  resetTeamStats();
+  games = [];
+  if (teams.length !== 4) return;
+  const teamNames = teams.map(t => t.name);
+  let currentDate = new Date(2026, 3, 5);
+  for (let round = 0; round < 8; round++) {
+    let rotation = [...teamNames];
+    for (let i = 0; i < round; i++) rotation.splice(1, 0, rotation.pop());
+    [[rotation[0], rotation[3]], [rotation[1], rotation[2]]].forEach(([home, away]) => {
+      const dateStr = currentDate.toLocaleDateString('en-US', {year:'numeric', month:'short', day:'numeric'});
+      games.push({home, away, date: dateStr, hs: null, as: null});
+      games.push({home: away, away: home, date: dateStr, hs: null, as: null});
+    });
+    currentDate.setDate(currentDate.getDate() + 7);
+  }
+  saveData().catch(err => console.error('Save failed:', err));
+}
+
+function resetTeamStats() {
+  teams.forEach(t => { t.wins = t.losses = t.rs = t.ra = 0; });
+}
+
+function getBranding(name) {
+  return TEAM_BRANDING[name] || {short: name.slice(0,3).toUpperCase(), logo: '⚾', colors: ['#475569','#1e293b']};
+}
+
+function createLogoBadge(name, size='') {
+  const b = getBranding(name);
+  const sizeClass = size ? ` ${size}` : '';
+  return `<span class="logo-badge${sizeClass}" style="background:linear-gradient(135deg,${b.colors[0]},${b.colors[1]});">${b.logo}</span>`;
+}
+
+function createTeamLabel(name) {
+  return `<span class="team-link" onclick="event.stopPropagation();openTeamDetail('${name.replace(/'/g,"\\'")}')">${createLogoBadge(name)} ${name}</span>`;
+}
+
+function showPage(id) {
+  document.querySelectorAll('.container > div[id]').forEach(d => d.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function openTeamDetail(name) {
+  currentTeamDetail = name;
+  renderTeamDetail();
+  showPage('teamDetail');
+}
+
+function toggleAdminPanel() {
+  document.getElementById('authPanel').classList.toggle('open');
+}
+
+function loginAdmin() {
+  if (document.getElementById('adminPassword').value === ADMIN_PASSWORD) {
+    isAdmin = true;
+    saveData();
+    renderAll();
+    toggleAdminPanel();
+    alert('✅ Admin mode enabled');
+  } else alert('❌ Wrong password');
+}
+
+function logoutAdmin() {
+  isAdmin = false;
+  saveData();
+  renderAll();
+  toggleAdminPanel();
+}
+
+async function addTeam() {
+  if (!isAdmin) return;
+  const name = document.getElementById('newTeam').value.trim();
+  if (!name || teams.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+    alert('Team name required or already exists');
+    return;
+  }
+  teams.push({name, wins:0, losses:0, rs:0, ra:0});
+  rosters[name] = [];
+  if (teams.length === 4) generateSchedule();
+  else games = [];
+  document.getElementById('newTeam').value = '';
+  await saveData();
+  renderAll();
+}
+
+async function removeTeam(name) {
+  if (!isAdmin) return;
+  teams = teams.filter(t => t.name !== name);
+  delete rosters[name];
+  if (teams.length === 4) generateSchedule();
+  else { games = []; resetTeamStats(); }
+  await saveData();
+  renderAll();
+}
+
+function renderTeamRoster() {
+  if (!currentTeamDetail) return;
+  const roster = rosters[currentTeamDetail] || [];
+  document.getElementById('teamRosterAdmin').innerHTML = isAdmin ? `
+    <div class="roster-form">
+      <input id="newPlayerName" placeholder="Player name">
+      <input id="newPlayerPosition" placeholder="Position">
+      <button onclick="addRosterPlayer()">Add</button>
+    </div>` : '';
+  document.getElementById('teamRoster').innerHTML = roster.map(p => `
+    <div class="roster-item">
+      <div>
+        <div class="roster-player">${p.name}</div>
+        <div class="roster-position">${p.position || 'Player'}</div>
+      </div>
+      ${isAdmin ? `<button class="danger" onclick="removeRosterPlayer(${p.id})">Remove</button>` : ''}
+    </div>
+  `).join('') || '<div class="announcement-item">Roster empty</div>';
+}
+
+async function addRosterPlayer() {
+  if (!isAdmin || !currentTeamDetail) return;
+  const name = document.getElementById('newPlayerName').value.trim();
+  const pos = document.getElementById('newPlayerPosition').value.trim();
+  if (!name) return alert('Enter player name');
+  if (!Array.isArray(rosters[currentTeamDetail])) rosters[currentTeamDetail] = [];
+  rosters[currentTeamDetail].push({id: Date.now(), name, position: pos || 'Player'});
+  await saveData();
+  renderTeamRoster();
+  document.getElementById('newPlayerName').value = '';
+  document.getElementById('newPlayerPosition').value = '';
+}
+
+async function removeRosterPlayer(id) {
+  if (!isAdmin || !currentTeamDetail) return;
+  rosters[currentTeamDetail] = rosters[currentTeamDetail].filter(p => p.id !== id);
+  await saveData();
+  renderTeamRoster();
+}
+
+async function submitGame(index) {
+  if (!isAdmin) return;
+  const h = parseInt(document.getElementById(`h${index}`).value);
+  const a = parseInt(document.getElementById(`a${index}`).value);
+  if (isNaN(h) || isNaN(a)) return alert('Enter valid scores');
+  if (h === a) return alert('No ties allowed');
+  const game = games[index];
+  game.hs = h; game.as = a;
+  updateStats(game.home, game.away, h, a);
+  await saveData();
+  renderAll();
+}
+
+async function editGame(index) {
+  if (!isAdmin) return;
+  const game = games[index];
+  if (game.hs === null) return;
+  rollbackStats(game.home, game.away, game.hs, game.as);
+  game.hs = game.as = null;
+  await saveData();
+  renderAll();
+}
+
+function updateStats(home, away, hs, as) {
+  const ht = teams.find(t => t.name === home);
+  const at = teams.find(t => t.name === away);
+  if (!ht || !at) return;
+  ht.rs += hs; ht.ra += as;
+  at.rs += as; at.ra += hs;
+  if (hs > as) { ht.wins++; at.losses++; } else { at.wins++; ht.losses++; }
+}
+
+function rollbackStats(home, away, hs, as) {
+  const ht = teams.find(t => t.name === home);
+  const at = teams.find(t => t.name === away);
+  if (!ht || !at) return;
+  ht.rs -= hs; ht.ra -= as;
+  at.rs -= as; at.ra -= hs;
+  if (hs > as) { ht.wins--; at.losses--; } else { at.wins--; ht.losses--; }
+}
+
+function getSortedTeams() {
+  return [...teams].sort((a,b) => b.wins - a.wins || (b.rs - b.ra) - (a.rs - a.ra));
+}
+
+function renderAll() {
+  renderScoreboardStrip();
+  renderHomeStandings();
+  renderLatestResults();
+  renderAnnouncements();
+  renderTeams();
+  renderGames();
+  renderStandings();
+  renderStadiums();
+  if (currentTeamDetail) renderTeamDetail();
+  updateHeroStats();
+}
+
+function updateHeroStats() {
+  document.getElementById('heroTeams').textContent = teams.length;
+  document.getElementById('heroGames').textContent = games.length;
+  document.getElementById('heroPlayed').textContent = games.filter(g => g.hs !== null).length;
+}
+
+function renderScoreboardStrip() {
+  const items = games.slice(0,8).map(g => {
+    const final = g.hs !== null && g.as !== null;
+    return `
+      <div class="scoreboard-item">
+        <div class="scoreboard-topline"><span>${g.date}</span><span>${final?'Final':'Upcoming'}</span></div>
+        <div class="scoreboard-matchup">
+          <div class="scoreboard-row">${createLogoBadge(g.home,'small')}<span class="scoreboard-team-name">${g.home}</span><span class="scoreboard-team-score">${final?g.hs:'-'}</span></div>
+          <div class="scoreboard-row">${createLogoBadge(g.away,'small')}<span class="scoreboard-team-name">${g.away}</span><span class="scoreboard-team-score">${final?g.as:'-'}</span></div>
+        </div>
+      </div>`;
+  }).join('');
+  document.getElementById('scoreboardStrip').innerHTML = items || '<div class="scoreboard-item">No games yet</div>';
+}
+
+function renderHomeStandings() {
+  const sorted = getSortedTeams();
+  document.getElementById('homeStandingsTable').innerHTML = sorted.map(t => {
+    const leader = sorted[0];
+    const gb = ((leader.wins - t.wins) + (t.losses - leader.losses)) / 2;
+    return `<tr><td>${createLogoBadge(t.name,'small')} ${t.name}</td><td>${t.wins}</td><td>${t.losses}</td><td>${gb.toFixed(1)}</td></tr>`;
+  }).join('');
+}
+
+function renderLatestResults() {
+  const completed = games.filter(g => g.hs !== null).slice(-4).reverse();
+  document.getElementById('latestResultsList').innerHTML = completed.map((g,i) => `
+    <div class="latest-result-item">
+      <div class="latest-result-thumb" style="background-image:url('${TEAM_BACKGROUNDS[i%4]}')"></div>
+      <div>
+        <div class="date">${g.date}</div>
+        <div class="teams">${createTeamLabel(g.home)} vs ${createTeamLabel(g.away)}</div>
+      </div>
+      <div class="latest-result-score">${g.hs}-${g.as}</div>
+    </div>
+  `).join('') || '<div style="padding:20px;text-align:center;color:var(--muted);">No results yet</div>';
+}
+
+function renderAnnouncements() {
+  document.getElementById('announcementsAdmin').innerHTML = isAdmin ? `
+    <div style="margin-bottom:14px;display:grid;gap:8px;">
+      <input id="annTitle" placeholder="Title">
+      <input id="annDate" type="date">
+      <textarea id="annText" placeholder="Message"></textarea>
+      <button onclick="addAnnouncement()">Post</button>
+    </div>` : '';
+  const html = announcements.sort((a,b)=>b.date.localeCompare(a.date)).map(a => `
+    <div class="announcement-item">
+      <div class="announcement-date">${a.date}</div>
+      <strong>${a.title}</strong>
+      <div style="margin-top:6px;color:var(--muted);">${a.text}</div>
+      ${isAdmin ? `<button class="danger" onclick="deleteAnnouncement(${a.id})" style="margin-top:8px;">Delete</button>` : ''}
+    </div>
+  `).join('');
+  document.getElementById('announcementsList').innerHTML = html || '<div class="announcement-item">No announcements</div>';
+}
+
+async function addAnnouncement() {
+  if (!isAdmin) return;
+  const title = document.getElementById('annTitle').value.trim();
+  const date = document.getElementById('annDate').value;
+  const text = document.getElementById('annText').value.trim();
+  if (!title || !date || !text) return alert('All fields required');
+  announcements.push({id: Date.now(), title, date, text});
+  await saveData();
+  renderAll();
+}
+
+async function deleteAnnouncement(id) {
+  if (!isAdmin) return;
+  announcements = announcements.filter(a => a.id !== id);
+  await saveData();
+  renderAll();
+}
+
+function renderTeams() {
+  document.getElementById('teamAdminControls').classList.toggle('hidden', !isAdmin);
+  document.getElementById('teamsList').innerHTML = teams.map((t,i) => `
+    <article class="team-card" style="background-image:url('${TEAM_BACKGROUNDS[i%4]}')" onclick="openTeamDetail('${t.name}')">
+      <div class="team-content">
+        <div class="team-heading">${createLogoBadge(t.name,'large')}<h3>${t.name}</h3></div>
+        <div class="team-record">Record: ${t.wins}-${t.losses}</div>
+        ${isAdmin ? `<button class="danger" onclick="event.stopPropagation();removeTeam('${t.name}')" style="margin-top:10px;">Remove</button>` : ''}
+      </div>
+    </article>
+  `).join('');
+}
+
+function renderGames() {
+  if (!games.length) {
+    document.getElementById('gamesList').innerHTML = '<div class="card">No games scheduled (needs exactly 4 teams)</div>';
+    return;
+  }
+  const grouped = games.reduce((acc,g,i) => {
+    if (!acc[g.date]) acc[g.date] = [];
+    acc[g.date].push({...g, index:i});
+    return acc;
+  }, {});
+  let html = '';
+  for (const [date, dayGames] of Object.entries(grouped)) {
+    const items = dayGames.map(g => {
+      if (g.hs !== null && g.as !== null) {
+        return `
+          <article class="simple-game-card">
+            <div class="simple-game-date">${date}</div>
+            <div class="simple-game-matchup">${createTeamLabel(g.home)} <span class="vs-inline">vs</span> ${createTeamLabel(g.away)}</div>
+            <div class="simple-game-right">
+              <div>
+                <div class="score-pill">${g.hs} - ${g.as}</div>
+                ${isAdmin ? `<button class="secondary" onclick="editGame(${g.index})" style="margin-top:8px;">Edit</button>` : ''}
+              </div>
+            </div>
+          </article>`;
+      }
+      if (!isAdmin) {
+        return `
+          <article class="simple-game-card">
+            <div class="simple-game-date">${date}</div>
+            <div class="simple-game-matchup">${createTeamLabel(g.home)} <span class="vs-inline">vs</span> ${createTeamLabel(g.away)}</div>
+            <div class="simple-game-right"><div class="score-pill">VS</div></div>
+          </article>`;
+      }
+      return `
+        <article class="simple-game-card">
+          <div class="simple-game-date">${date}</div>
+          <div class="simple-game-matchup">${createTeamLabel(g.home)} <span class="vs-inline">vs</span> ${createTeamLabel(g.away)}</div>
+          <div class="simple-game-right">
+            <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;">
+              <input id="h${g.index}" type="number" placeholder="${g.home}" style="width:90px;">
+              <input id="a${g.index}" type="number" placeholder="${g.away}" style="width:90px;">
+              <button onclick="submitGame(${g.index})">Save</button>
+            </div>
+          </div>
+        </article>`;
+    }).join('');
+    html += `<section class="card"><div class="panel-title"><h3>${date}</h3></div><div class="schedule-list">${items}</div></section>`;
+  }
+  document.getElementById('gamesList').innerHTML = html;
+}
+
+function renderTeamDetail() {
+  const team = teams.find(t => t.name === currentTeamDetail);
+  if (!team) return;
+  document.getElementById('teamDetailTitle').textContent = team.name;
+  document.getElementById('teamDetailSubtitle').textContent = `Record ${team.wins}-${team.losses} • ${STADIUMS[team.name]?.name || 'Home Field'}`;
+  document.getElementById('teamDetailHero').innerHTML = `
+    <div class="detail-hero">
+      ${createLogoBadge(team.name,'large')}
+      <div><h3>${team.name}</h3><div style="color:#dbeafe;">Official Club Page</div></div>
+    </div>`;
+  document.getElementById('teamSnapshot').innerHTML = `
+      <div class="snapshot-box"><div class="snapshot-label">Record</div><div class="snapshot-value">${team.wins}-${team.losses}</div></div>
+      <div class="snapshot-box"><div class="snapshot-label">Run Diff</div><div class="snapshot-value">${team.rs - team.ra}</div></div>
+      <div class="snapshot-box"><div class="snapshot-label">Runs Scored</div><div class="snapshot-value">${team.rs}</div></div>
+      <div class="snapshot-box"><div class="snapshot-label">Runs Allowed</div><div class="snapshot-value">${team.ra}</div></div>
+      <div class="snapshot-box" style="grid-column:1/-1"><div class="snapshot-label">Home Stadium</div><div class="snapshot-value" style="font-size:20px;">${STADIUMS[team.name]?.name || 'TBD'}</div></div>`;
+  const teamGames = games.filter(g => g.home === team.name || g.away === team.name).slice(0,8);
+  let gamesHTML = teamGames.map(g => {
+    const isHome = g.home === team.name;
+    const opp = isHome ? g.away : g.home;
+    const score = g.hs !== null ? (isHome ? `${g.hs}-${g.as}` : `${g.as}-${g.hs}`) : 'VS';
+    return `
+      <article class="simple-game-card">
+        <div class="simple-game-date">${g.date}</div>
+        <div class="simple-game-matchup">${createTeamLabel(isHome?team.name:opp)} <span class="vs-inline">vs</span> ${createTeamLabel(isHome?opp:team.name)}</div>
+        <div class="simple-game-right"><div class="score-pill">${score}</div></div>
+      </article>`;
+  }).join('') || '<div class="announcement-item">No games yet</div>';
+  document.getElementById('teamRecentGames').innerHTML = gamesHTML;
+  renderTeamRoster();
+}
+
+function renderStandings() {
+  const sorted = getSortedTeams();
+  const leader = sorted[0];
+  document.getElementById('standingsTable').innerHTML = sorted.map(t => {
+    const gb = ((leader.wins - t.wins) + (t.losses - leader.losses)) / 2;
+    return `<tr>
+      <td>${createLogoBadge(t.name,'small')} ${t.name}</td>
+      <td>${t.wins}</td><td>${t.losses}</td><td>${gb.toFixed(1)}</td>
+      <td>${t.rs}</td><td>${t.ra}</td><td>${t.rs-t.ra}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderStadiums() {
+  document.getElementById('stadiumsList').innerHTML = teams.map(t => {
+    const s = STADIUMS[t.name] || {name: `${t.name} Stadium`, address: 'TBD', map: '#', image: TEAM_BACKGROUNDS[0]};
+    return `
+      <article class="card stadium-card">
+        <div class="stadium-image" style="background-image:url('${s.image}')"></div>
+        <div class="stadium-body">
+          <div class="stadium-team">${createLogoBadge(t.name)} <strong>${t.name}</strong></div>
+          <h3>${s.name}</h3>
+          <div class="stadium-meta">
+            <div>${s.address}</div>
+            <div style="margin-top:8px;"><a href="${s.map}" target="_blank">Google Maps →</a></div>
+          </div>
+        </div>
+      </article>`;
+  }).join('');
+}
+
+// ====================== START ======================
+async function startApp() {
+  await loadData();
+  renderAll();
+}
+
+startApp().catch(err => {
+  console.error('App failed to start:', err);
+  alert('There was a problem loading the league data. Check your Firebase config and try again.');
+});
+</script>
+</body>
+</html>
