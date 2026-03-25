@@ -657,26 +657,32 @@ tr:last-child td {
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  window.firebaseInitPromise = (async () => {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc
+    } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyC6EqwqRkEF3X_t7QHLNc06Vxip32YpE6E",
-    authDomain: "caribbean-sunday-league.firebaseapp.com",
-    projectId: "caribbean-sunday-league",
-    storageBucket: "caribbean-sunday-league.firebasestorage.app",
-    messagingSenderId: "894839206889",
-    appId: "1:894839206889:web:42ad09ca307a7cedb55178"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyC6EqwqRkEF3X_t7QHLNc06Vxip32YpE6E",
+      authDomain: "caribbean-sunday-league.firebaseapp.com",
+      projectId: "caribbean-sunday-league",
+      storageBucket: "caribbean-sunday-league.firebasestorage.app",
+      messagingSenderId: "894839206889",
+      appId: "1:894839206889:web:42ad09ca307a7cedb55178"
+    };
 
-  const hasFirebaseConfig = Object.values(firebaseConfig).every(value => value && !String(value).startsWith('PASTE_YOUR_'));
+    const hasFirebaseConfig = Object.values(firebaseConfig).every(value => value && !String(value).startsWith('PASTE_YOUR_'));
 
-  if (hasFirebaseConfig) {
+    if (!hasFirebaseConfig) {
+      console.warn('Firebase config is missing. Add your Firebase web app config to enable shared online saving.');
+      window.firebaseReady = false;
+      return false;
+    }
+
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     window.db = db;
@@ -684,10 +690,13 @@ tr:last-child td {
     window.firebaseGetDoc = getDoc;
     window.firebaseSetDoc = setDoc;
     window.firebaseReady = true;
-  } else {
-    console.warn('Firebase config is missing. Add your Firebase web app config to enable shared online saving.');
+    console.log('Firebase initialized successfully.');
+    return true;
+  })().catch(err => {
+    console.error('Firebase failed to initialize:', err);
     window.firebaseReady = false;
-  }
+    return false;
+  });
 </script>
 
 <script>
@@ -739,23 +748,31 @@ async function saveData() {
   localStorage.setItem(STORAGE_KEYS.admin, JSON.stringify(isAdmin));
 
   if (window.firebaseReady && window.db) {
-    await window.firebaseSetDoc(
-      window.firebaseDoc(window.db, 'league', 'main'),
-      {
-        teams,
-        games,
-        announcements,
-        rosters,
-        updatedAt: new Date().toISOString()
-      }
-    );
-    return;
+    try {
+      await window.firebaseSetDoc(
+        window.firebaseDoc(window.db, 'league', 'main'),
+        {
+          teams,
+          games,
+          announcements,
+          rosters,
+          updatedAt: new Date().toISOString()
+        }
+      );
+      console.log('League data saved to Firestore.');
+      return;
+    } catch (err) {
+      console.error('Firestore save failed:', err);
+      alert('Save failed. Open the browser console for the exact Firebase error.');
+      throw err;
+    }
   }
 
   localStorage.setItem(STORAGE_KEYS.teams, JSON.stringify(teams));
   localStorage.setItem(STORAGE_KEYS.games, JSON.stringify(games));
   localStorage.setItem(STORAGE_KEYS.announcements, JSON.stringify(announcements));
   localStorage.setItem(STORAGE_KEYS.rosters, JSON.stringify(rosters));
+  console.log('League data saved to localStorage fallback.');
 }
 
 async function loadData() {
@@ -871,19 +888,19 @@ function toggleAdminPanel() {
   document.getElementById('authPanel').classList.toggle('open');
 }
 
-function loginAdmin() {
+async function loginAdmin() {
   if (document.getElementById('adminPassword').value === ADMIN_PASSWORD) {
     isAdmin = true;
-    saveData();
+    await saveData();
     renderAll();
     toggleAdminPanel();
     alert('✅ Admin mode enabled');
   } else alert('❌ Wrong password');
 }
 
-function logoutAdmin() {
+async function logoutAdmin() {
   isAdmin = false;
-  saveData();
+  await saveData();
   renderAll();
   toggleAdminPanel();
 }
@@ -1223,6 +1240,9 @@ function renderStadiums() {
 
 // ====================== START ======================
 async function startApp() {
+  if (window.firebaseInitPromise) {
+    await window.firebaseInitPromise;
+  }
   await loadData();
   renderAll();
 }
