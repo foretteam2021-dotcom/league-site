@@ -739,8 +739,22 @@ const TEAM_BRANDING = {
 };
 
 // ====================== SAVE / LOAD / INIT ======================
-async function saveData() {
+function persistLocalCache() {
   localStorage.setItem(STORAGE_KEYS.admin, JSON.stringify(isAdmin));
+  localStorage.setItem(STORAGE_KEYS.teams, JSON.stringify(teams));
+  localStorage.setItem(STORAGE_KEYS.games, JSON.stringify(games));
+  localStorage.setItem(STORAGE_KEYS.announcements, JSON.stringify(announcements));
+  localStorage.setItem(STORAGE_KEYS.rosters, JSON.stringify(rosters));
+}
+
+function hasLocalLeagueData() {
+  const savedTeams = JSON.parse(localStorage.getItem(STORAGE_KEYS.teams) || '[]');
+  const savedGames = JSON.parse(localStorage.getItem(STORAGE_KEYS.games) || '[]');
+  return Array.isArray(savedTeams) && savedTeams.length > 0 && Array.isArray(savedGames);
+}
+
+async function saveData() {
+  persistLocalCache();
 
   if (db) {
     try {
@@ -752,17 +766,14 @@ async function saveData() {
         updatedAt: new Date().toISOString()
       });
       console.log('✅ Saved to Firestore');
-      return;
+      return true;
     } catch(e) {
       console.error('Firestore save failed:', e);
+      return false;
     }
   }
 
-  // Fallback to localStorage if Firestore unavailable
-  localStorage.setItem(STORAGE_KEYS.teams, JSON.stringify(teams));
-  localStorage.setItem(STORAGE_KEYS.games, JSON.stringify(games));
-  localStorage.setItem(STORAGE_KEYS.announcements, JSON.stringify(announcements));
-  localStorage.setItem(STORAGE_KEYS.rosters, JSON.stringify(rosters));
+  return true;
 }
 
 async function loadData() {
@@ -778,28 +789,34 @@ async function loadData() {
         announcements = data.announcements || getDefaultAnnouncements();
         rosters = data.rosters || getDefaultRosters();
         console.log('✅ Loaded from Firestore');
+        persistLocalCache();
+      } else if (hasLocalLeagueData()) {
+        console.log('No Firestore doc yet — migrating local data to Firestore');
+        loadFromLocalStorage(false);
+        await saveData();
       } else {
-        console.log('No Firestore doc yet — creating defaults');
+        console.log('No Firestore doc yet — creating defaults once');
         initDefaultData();
         await saveData();
       }
     } catch(e) {
       console.error('Firestore load failed:', e);
-      loadFromLocalStorage();
+      loadFromLocalStorage(true);
     }
   } else {
-    loadFromLocalStorage();
+    loadFromLocalStorage(true);
   }
 
   ensureRosterShape();
+  recalculateStatsFromGames();
 }
 
-function loadFromLocalStorage() {
+function loadFromLocalStorage(allowDefaults = true) {
   teams = JSON.parse(localStorage.getItem(STORAGE_KEYS.teams)) || [];
   games = JSON.parse(localStorage.getItem(STORAGE_KEYS.games)) || [];
   announcements = JSON.parse(localStorage.getItem(STORAGE_KEYS.announcements)) || getDefaultAnnouncements();
   rosters = JSON.parse(localStorage.getItem(STORAGE_KEYS.rosters)) || getDefaultRosters();
-  if (teams.length === 0) initDefaultData();
+  if (teams.length === 0 && allowDefaults) initDefaultData();
 }
 
 function initDefaultData() {
@@ -834,12 +851,12 @@ function ensureRosterShape() {
   teams.forEach(t => { if (!Array.isArray(rosters[t.name])) rosters[t.name] = []; });
 }
 
-function generateSchedule() {
+async function generateSchedule() {
   resetTeamStats();
   games = [];
   if (teams.length !== 4) return;
   const teamNames = teams.map(t => t.name);
-  let currentDate = new Date(2026, 3, 5);
+  let currentDate = new Date(2026, 4, 3);
   for (let round = 0; round < 8; round++) {
     let rotation = [...teamNames];
     for (let i = 0; i < round; i++) rotation.splice(1, 0, rotation.pop());
@@ -850,11 +867,18 @@ function generateSchedule() {
     });
     currentDate.setDate(currentDate.getDate() + 7);
   }
-  saveData().catch(err => console.error('Save failed:', err));
+  await saveData();
 }
 
 function resetTeamStats() {
   teams.forEach(t => { t.wins = t.losses = t.rs = t.ra = 0; });
+}
+
+function recalculateStatsFromGames() {
+  resetTeamStats();
+  games.forEach(g => {
+    if (g.hs !== null && g.as !== null) updateStats(g.home, g.away, g.hs, g.as);
+  });
 }
 
 function getBranding(name) {
@@ -912,7 +936,7 @@ async function addTeam() {
   }
   teams.push({name, wins:0, losses:0, rs:0, ra:0});
   rosters[name] = [];
-  if (teams.length === 4) generateSchedule();
+  if (teams.length === 4) await generateSchedule();
   else games = [];
   document.getElementById('newTeam').value = '';
   await saveData();
@@ -923,7 +947,7 @@ async function removeTeam(name) {
   if (!isAdmin) return;
   teams = teams.filter(t => t.name !== name);
   delete rosters[name];
-  if (teams.length === 4) generateSchedule();
+  if (teams.length === 4) await generateSchedule();
   else { games = []; resetTeamStats(); }
   await saveData();
   renderAll();
@@ -1015,6 +1039,7 @@ function getSortedTeams() {
 }
 
 function renderAll() {
+  recalculateStatsFromGames();
   renderScoreboardStrip();
   renderHomeStandings();
   renderLatestResults();
@@ -1090,6 +1115,20 @@ function renderAnnouncements() {
   document.getElementById('announcementsList').innerHTML = html || '<div class="announcement-item">No announcements</div>';
 }
 
+
+async function resetSchedule() {
+  if (!isAdmin) return;
+  if (teams.length !== 4) {
+    alert('Schedule reset needs exactly 4 teams.');
+    return;
+  }
+  const ok = confirm('Reset the full schedule starting on May 3, 2026? This will clear all saved scores and rebuild the schedule.');
+  if (!ok) return;
+  await generateSchedule();
+  renderAll();
+  alert('✅ Schedule reset complete. New first Sunday: May 3, 2026.');
+}
+
 async function addAnnouncement() {
   if (!isAdmin) return;
   const title = document.getElementById('annTitle').value.trim();
@@ -1110,6 +1149,11 @@ async function deleteAnnouncement(id) {
 
 function renderTeams() {
   document.getElementById('teamAdminControls').classList.toggle('hidden', !isAdmin);
+  document.getElementById('teamAdminControls').innerHTML = isAdmin ? `
+    <input id="newTeam" placeholder="New team name">
+    <button onclick="addTeam()">Add Team</button>
+    <button class="secondary" onclick="resetSchedule()">Reset Schedule</button>
+  ` : '';
   document.getElementById('teamsList').innerHTML = teams.map((t,i) => `
     <article class="team-card" style="background-image:url('${TEAM_BACKGROUNDS[i%4]}')" onclick="openTeamDetail('${t.name}')">
       <div class="team-content">
@@ -1257,6 +1301,7 @@ window.addAnnouncement = addAnnouncement;
 window.deleteAnnouncement = deleteAnnouncement;
 window.addRosterPlayer = addRosterPlayer;
 window.removeRosterPlayer = removeRosterPlayer;
+window.resetSchedule = resetSchedule;
 
 startApp().catch(err => {
   console.error('App failed to start:', err);
